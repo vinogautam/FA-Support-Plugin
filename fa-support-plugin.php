@@ -103,6 +103,7 @@
 			   blog_id text NOT NULL,
 			   newsetter boolean,
 			   status boolean,
+			   address text,
 			  PRIMARY KEY  (id) ) ENGINE=InnoDB";
 
 			require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
