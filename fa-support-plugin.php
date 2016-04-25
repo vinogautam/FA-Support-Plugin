@@ -104,6 +104,9 @@
 			   newsetter boolean,
 			   status boolean,
 			   address text,
+			   visited_page tinytext,
+			   form_url tinytext,
+			   endorser_id int(11),
 			  PRIMARY KEY  (id) ) ENGINE=InnoDB";
 
 			require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
