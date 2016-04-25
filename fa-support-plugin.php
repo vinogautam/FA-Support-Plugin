@@ -5,6 +5,8 @@
  * Version: 1.0
  */
  
+ include 'fa-support-listtable.php';
+ 
  Class FA_Support
  {
 	function FA_Support(){
@@ -18,6 +20,12 @@
 		}
 		
 		add_action( 'wp_footer', array( &$this, 'save_surfing_page'), 100 );
+		
+		add_action( 'admin_menu', array( $this, 'add_plugin_pages' ) );
+	}
+	
+	function add_plugin_pages() {
+		add_menu_page( 'Leads', 'Leads', 'manage_options', 'lead_table', array( $this, 'lead_table' ));
 	}
 	
 	function save_surfing_page()
@@ -51,9 +59,17 @@
 		}
 		
 		$wpdb->insert($wpdb->prefix . "leads", $lead_data);
+		$this->confirmation_mail();
 		$lead_id = $wpdb->insert_id;
 		
 		
+	}
+	
+	function confirmation_mail()
+	{
+		$message = 'Thanks for signing up FinancialInsiders.';
+		
+		NTM_mail_template::send_mail($_POST['email'], 'Registered with FinancialInsiders successfly.', $message);
 	}
 	
 	function FA_install()
@@ -86,11 +102,26 @@
 			   agent_id text NOT NULL,
 			   blog_id text NOT NULL,
 			   newsetter boolean,
+			   status boolean,
 			  PRIMARY KEY  (id) ) ENGINE=InnoDB";
 
 			require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
 			dbDelta($sql_one);
 		}
+	}
+	
+	function lead_table()
+	{
+		global $wpdb;
+		
+		if(isset($_GET['change_status']))
+		{
+			$wpdb->update($wpdb->prefix . "leads", array('status' => 1), array('id' => $_GET['id']));
+		}
+		
+		$lead_table = new LeadTable();
+		$lead_table->prepare_items();
+		$lead_table->display();
 	}
  }
  
