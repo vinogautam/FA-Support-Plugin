@@ -16,7 +16,9 @@
 		
 		if(isset($_POST['appointments-confirmation-button']))
 		{
-			$this->save_lead();
+			if ( appointments_update_appointment_status( $appointmentID, 'confirmed' ) ) {
+				$this->save_lead($appointmentID);
+			}
 		}
 		
 		add_action( 'wp_footer', array( &$this, 'save_surfing_page'), 100 );
@@ -38,7 +40,7 @@
 		setcookie("fa_surfing_page", implode(",", $surfing_page), time() + (86400 * 365), "/");
 	}
 	
-	function save_lead()
+	function save_lead($appointmentID)
 	{
 		global $wpdb;
 		
@@ -46,6 +48,7 @@
 		$lead_data['created'] = date("Y-m-d H:i:s");
 		//$lead_data['agent_id'] = '';
 		$lead_data['blog_id'] = get_current_blog_id();
+		$lead_data['appointment_id'] = appointmentID();
 		$lead_data['form_url'] = $_SERVER['HTTP_REFERER'];
 		$lead_data['visited_page'] = $_COOKIE['fa_surfing_page'];
 		if(isset($_COOKIE['endorsement_track_link']) && !isset($_COOKIE['endorsement_tracked']))
@@ -107,6 +110,7 @@
 			   visited_page tinytext,
 			   form_url tinytext,
 			   endorser_id int(11),
+			   appointment_id int(11),
 			  PRIMARY KEY  (id) ) ENGINE=InnoDB";
 
 			require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
