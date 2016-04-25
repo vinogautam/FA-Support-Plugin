@@ -24,7 +24,7 @@ class LeadTable extends WP_List_Table {
 			case 'created':
                 return date('Y/m/d H:i', strtotime($item[$column_name]));
 			case 'manual_link':
-                return $item['status'] ? '' : '<a href="?action=change_status&id='.$item['id'].'">Show data to agent</a>';
+                return $item['status'] ? '' : '<a href="?action=change_status&id='.$item['id'].'&appointment_id='.$item['appointment_id'].'">Show data to agent</a>';
             default:
                 return $item[$column_name];//print_r($item,true); //Show the whole array for troubleshooting purposes
         }
