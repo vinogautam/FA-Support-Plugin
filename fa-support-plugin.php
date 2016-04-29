@@ -16,9 +16,9 @@
 		
 		if(isset($_POST['appointments-confirmation-button']))
 		{
-			$this->save_lead($appointmentID);
+			$this->save_lead();
 		}
-		
+		add_action( 'app_new_appointment', array( &$this, 'save_lead'), 100 );
 		add_action( 'wp_footer', array( &$this, 'save_surfing_page'), 100 );
 		
 		add_action( 'admin_menu', array( $this, 'add_plugin_pages' ) );
@@ -32,22 +32,31 @@
 	{
 		$surfing_page = isset($_COOKIE['fa_surfing_page']) ? explode(",", $_COOKIE['fa_surfing_page']) : array();
 		//print_r(!in_array(get_the_title(), $surfing_page));
-		if(get_the_title() && !in_array(get_the_title(), $surfing_page))
-			$surfing_page[] = get_the_title();
+		$data = 'Blog:'.get_current_blog_id().' Page:'.get_the_title();
+		if(!in_array($data, $surfing_page))
+			$surfing_page[] = $data;
 		//print_r($surfing_page);
 		setcookie("fa_surfing_page", implode(",", $surfing_page), time() + (86400 * 365), "/");
+		
+		if(!isset($_COOKIE['visited_blog_id']) && get_current_blog_id())
+			setcookie("visited_blog_id", get_current_blog_id(), time() + (86400 * 365), "/");
 	}
 	
-	function save_lead()
+	function get_visited_blog_id()
+	{
+		return $_COOKIE['visited_blog_id'];
+	}
+	
+	function save_lead($appointmentID)
 	{
 		global $wpdb;
-		
 		$lead_data = $_POST;
 		$lead_data['created'] = date("Y-m-d H:i:s");
 		//$lead_data['agent_id'] = '';
 		$lead_data['blog_id'] = get_current_blog_id();
 		$lead_data['form_url'] = $_SERVER['HTTP_REFERER'];
 		$lead_data['visited_page'] = $_COOKIE['fa_surfing_page'];
+		$lead_data['appointment_id'] = $appointmentID;
 		if(isset($_COOKIE['endorsement_track_link']) && !isset($_COOKIE['endorsement_tracked']))
 		{
 			$track_link = explode("#&$#", base64_decode(base64_decode($_COOKIE['endorsement_track_link'])));
@@ -58,8 +67,18 @@
 			}
 		}
 		
+		unset($lead_data['action']);
+		unset($lead_data['app_name']);
+		unset($lead_data['app_email']);
+		unset($lead_data['app_phone']);
+		unset($lead_data['app_address']);
+		unset($lead_data['app_city']);
+		unset($lead_data['app_note']);
+		unset($lead_data['app_gcal']);
+		unset($lead_data['nonce']);
+		print_r($lead_data);
 		$wpdb->insert($wpdb->prefix . "leads", $lead_data);
-		$this->confirmation_mail();
+		//$this->confirmation_mail();
 		$lead_id = $wpdb->insert_id;
 		
 		
@@ -102,7 +121,7 @@
 			   agent_id text NOT NULL,
 			   blog_id text NOT NULL,
 			   newsetter boolean,
-			   status boolean,
+			   status int(1),
 			   address text,
 			   visited_page tinytext,
 			   form_url tinytext,
