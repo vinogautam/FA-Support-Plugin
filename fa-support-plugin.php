@@ -18,9 +18,13 @@
 		{
 			$this->save_lead();
 		}
+		if(isset($_GET['update_lead_status']))
+		{
+			$this->update_lead_status();
+		}
+		
 		add_action( 'app_new_appointment', array( &$this, 'save_lead'), 100 );
 		add_action( 'wp_footer', array( &$this, 'save_surfing_page'), 100 );
-		
 		add_action( 'admin_menu', array( $this, 'add_plugin_pages' ) );
 	}
 	
@@ -45,6 +49,23 @@
 	function get_visited_blog_id()
 	{
 		return $_COOKIE['visited_blog_id'];
+	}
+	
+	function update_lead_status()
+	{
+		global $wpdb;
+		
+		if(isset($_GET['change_status']))
+		{
+			$lead_id = base64_decode(base64_decode($_GET['id']));
+			$wpdb->update($wpdb->prefix . "leads", array('status' => 1), array('id' => $lead_id));
+			
+			$administrator = get_users( array( 'role' => 'administrator' ) );
+			foreach($administrator as $ad)
+			{
+				$this->send_lead_confirm_notification($ad->user_email, $lead_id);
+			}
+		}
 	}
 	
 	function save_lead($appointmentID)
@@ -78,17 +99,30 @@
 		unset($lead_data['nonce']);
 		print_r($lead_data);
 		$wpdb->insert($wpdb->prefix . "leads", $lead_data);
-		//$this->confirmation_mail();
 		$lead_id = $wpdb->insert_id;
-		
-		
+		//$this->confirmation_mail($lead_id);
+	
 	}
 	
-	function confirmation_mail()
+	function confirmation_mail($lead_id)
 	{
-		$message = 'Thanks for signing up FinancialInsiders.';
+		$message = 'Thanks for signing up FinancialInsiders. <a href="'.site_url().'?action=update_lead_status&id='.base64_encode(base64_encode($lead_id)).'">Click here to confirm your registration</a>';
 		
 		NTM_mail_template::send_mail($_POST['email'], 'Registered with FinancialInsiders successfly.', $message);
+	}
+	
+	function send_lead_confirm_notification($email, $lead_id)
+	{
+		global $wpdb;
+		
+		$lead = $wpdb->get_row("select * from ".$wpdb->prefix . "leads where id =" . $lead_id);
+		
+		$message = 'New Lead confirmation notification <br>
+					<h2>Lead Detais <h2> <br>
+					Lead Name : '.$lead->first_name.' '.$lead->last_name.'<br>
+					Lead Name : '.$lead->email;
+		
+		NTM_mail_template::send_mail($email, 'New Lead confirmation notification.', $message);
 	}
 	
 	function FA_install()
@@ -136,12 +170,12 @@
 	
 	function lead_table()
 	{
-		global $wpdb;
+		global $wpdb, $appoinments;
 		
 		if(isset($_GET['change_status']))
 		{
-			$wpdb->update($wpdb->prefix . "leads", array('status' => 1), array('id' => $_GET['id']));
-			appointments_update_appointment_status( $_GET['appointment_id'], 'confirmed' );
+			$wpdb->update($wpdb->prefix . "leads", array('status' => 2), array('id' => $_GET['id']));
+			$appoinments->appointments_update_appointment_status( $_GET['appointment_id'], 'confirmed' );
 		}
 		
 		$lead_table = new LeadTable();

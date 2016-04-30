@@ -24,7 +24,7 @@ class LeadTable extends WP_List_Table {
 			case 'created':
                 return date('Y/m/d H:i', strtotime($item[$column_name]));
 			case 'manual_link':
-                return $item['status'] ? '' : '<a href="?action=change_status&id='.$item['id'].'&appointment_id='.$item['appointment_id'].'">Show data to agent</a>';
+                return $item['status'] == 1 ? '' : '<a href="?action=change_status&id='.$item['id'].'&appointment_id='.$item['appointment_id'].'">Show data to agent</a>';
             default:
                 return $item[$column_name];//print_r($item,true); //Show the whole array for troubleshooting purposes
         }
@@ -98,7 +98,7 @@ class LeadTable extends WP_List_Table {
     }
     
     function prepare_items() {
-        global $wpdb; 
+        global $wpdb, $current_user; 
         $per_page = 5;
         $columns = $this->get_columns();
         $hidden = array();
@@ -121,7 +121,12 @@ class LeadTable extends WP_List_Table {
 			return $d;
 		}
 		}
-		$data = objectToArray($wpdb->get_results("select * from ".$wpdb->prefix . "leads"));
+		
+		if(is_admin())
+			$data = objectToArray($wpdb->get_results("select * from ".$wpdb->prefix . "leads"));
+		else
+			$data = objectToArray($wpdb->get_results("select * from ".$wpdb->prefix . "leads where status = 2 and agent_id =". $current_user->ID));
+		
         $newdat = array();
 		foreach($data as $v){
 			$newdat[] = $v;
