@@ -7,6 +7,11 @@
  
  include 'fa-support-listtable.php';
  
+ if(!class_exists('Stripe'))
+ {
+	 require('../paid-memberships-pro/includes/lib/Stripe/Stripe.php');
+ }
+ 
  Class FA_Support
  {
 	function FA_Support(){
@@ -18,7 +23,7 @@
 		{
 			$this->save_lead();
 		}
-		if(isset($_GET['update_lead_status']))
+		if(isset($_GET['action']) && $_GET['action'] == 'update_lead_status')
 		{
 			$this->update_lead_status();
 		}
@@ -55,16 +60,13 @@
 	{
 		global $wpdb;
 		
-		if(isset($_GET['change_status']))
+		$lead_id = base64_decode(base64_decode($_GET['id']));
+		$wpdb->update($wpdb->prefix . "leads", array('status' => 1), array('id' => $lead_id));
+		
+		$administrator = get_users( array( 'role' => 'administrator' ) );
+		foreach($administrator as $ad)
 		{
-			$lead_id = base64_decode(base64_decode($_GET['id']));
-			$wpdb->update($wpdb->prefix . "leads", array('status' => 1), array('id' => $lead_id));
-			
-			$administrator = get_users( array( 'role' => 'administrator' ) );
-			foreach($administrator as $ad)
-			{
-				$this->send_lead_confirm_notification($ad->user_email, $lead_id);
-			}
+			$this->send_lead_confirm_notification($ad->user_email, $lead_id);
 		}
 	}
 	
@@ -172,10 +174,34 @@
 	{
 		global $wpdb, $appoinments;
 		
-		if(isset($_GET['change_status']))
+		if(isset($_GET['action']) && $_GET['action'] == 'change_status')
 		{
-			$wpdb->update($wpdb->prefix . "leads", array('status' => 2), array('id' => $_GET['id']));
-			$appoinments->appointments_update_appointment_status( $_GET['appointment_id'], 'confirmed' );
+			$lead = $wpdb->get_row("select * from ".$wpdb->prefix . "leads where id=".$_GET['id']);
+			
+			Stripe::setApiKey("sk_test_ptIh1KjZKyzPthKwE4szUeDE");
+			Stripe::setAPIVersion("2015-07-13");
+			
+			$customer_id = get_user_meta($lead->agent_id, "pmpro_stripe_customerid");
+			$amount = 100;
+			
+			$invoice_item = Stripe_InvoiceItem::create( array(
+				'customer'    => $customer_id, // the customer to apply the fee to
+				'amount'      => $amount, // amount in cents
+				'currency'    => 'usd',
+				'description' => 'One-time setup fee' // our fee description
+			) );
+		 
+			$invoice = Stripe_Invoice::create( array(
+				'customer'    => $customer_id, // the customer to apply the fee to
+			) );
+		 
+			$result = $invoice->pay();
+			if(isset($result->object) && $result->object == 'invoice')
+			{
+				$wpdb->update($wpdb->prefix . "leads", array('status' => 2), array('id' => $_GET['id']));
+				$appoinments->appointments_update_appointment_status( $_GET['appointment_id'], 'confirmed' );
+			}
+			
 		}
 		
 		$lead_table = new LeadTable();
