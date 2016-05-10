@@ -92,7 +92,7 @@ class LeadTable extends WP_List_Table {
 		if( 'delete'===$this->current_action()) {
 		$del_val = $_REQUEST['movie'];
 		foreach($del_val as $val) {
-			$wpdb->delete($wpdb->prefix . "leads", array( 'id' => $val ) );
+			$wpdb->delete( "wp_leads", array( 'id' => $val ) );
 		}}
        
     }
@@ -123,9 +123,9 @@ class LeadTable extends WP_List_Table {
 		}
 		
 		if(is_admin())
-			$data = objectToArray($wpdb->get_results("select * from ".$wpdb->prefix . "leads"));
+			$data = objectToArray($wpdb->get_results("select * from wp_leads"));
 		else
-			$data = objectToArray($wpdb->get_results("select * from ".$wpdb->prefix . "leads where status = 2 and agent_id =". $current_user->ID));
+			$data = objectToArray($wpdb->get_results("select * from wp_leads where status = 2 and agent_id =". $current_user->ID));
 		
         $newdat = array();
 		foreach($data as $v){
