@@ -6,7 +6,7 @@
  */
  
  include 'fa-support-listtable.php';
- 
+ define('FAS_PLUGIN_URL', plugin_dir_url( __FILE__ ));
  if(!class_exists('Stripe'))
  {
 	 
@@ -38,7 +38,7 @@
 		if(is_admin())
 			add_action( 'admin_init',  array( $this, 'add_plugin_options' ));
 		add_action( 'wpmu_new_blog',  array( $this, 'add_user_site_options' ), 10, 6);	
-
+		add_action( 'wp_ajax_get_lead_info', array( &$this, 'get_lead_info'), 100 );
 	}
 
 	function add_user_site_options($blog_id, $user_id, $domain, $path, $site_id, $meta) {
@@ -48,7 +48,31 @@
 			 exit;
 	}
 
-
+	function get_lead_info()
+	{
+		global $wpdb;
+		
+		$res = $wpdb->get_row("select * from wp_leads where id=".$_POST['id']);
+		
+		$label_fields = array('first_name' => 'First Name', 'last_name' => 'Last name', 'email' => 'Email Address', 'city' => 'City', 'phone' => 'Phone Number', 'postal_code' => 'Postal Code', 'province' => 'Province', 'dob' => 'Date of Birth', 'gender' => 'Gender', 'marital_status' => 'Marital Status', 'occupation' => 'Occupation', 'retire_age' => 'At what age would you plan to retire?', 'retire_income' => 'Desired monthly income after retirement', 'retirement_goal' => 'Do you have a plan to meet your retirement goals?', 'own_business' => 'Do you own a business?', 'comments' => 'Comments', 'address' => 'Address');
+		
+		?>
+		<table border="0" cellspacing="0" cellpadding="10">
+			<tr>
+				<th width="50%">Field</th>
+				<th width="50%">Value</th>
+			</tr>
+			<?php foreach($label_fields as $k=>$v){?>
+			<tr>
+				<td><?= $v;?></td>
+				<td><?= $res->$k;?></td>
+			</tr>
+			<?php }?>
+		</table>
+		<?php
+		echo $res->status == 1 ? '<a class="button button-primary" href="?action=change_status&id='.$res->id.'&appointment_id='.$res->appointment_id.'">Confirm Lead</a>' : '';
+		die(0);
+	}
 
 
 
@@ -244,6 +268,35 @@
 		$lead_table = new LeadTable();
 		$lead_table->prepare_items();
 		$lead_table->display();
+		
+		?>
+		<link rel="stylesheet" type="text/css" href="<?php _e(FAS_PLUGIN_URL);?>/css/colorbox.css" media="all" />
+		<script type='text/javascript' src='<?php _e(FAS_PLUGIN_URL);?>/js/jquery.colorbox.js'></script>
+		<script>
+		jQuery(document).ready(function(){
+			jQuery(".inline").colorbox({inline:true, width:"80%", height:"80%"});
+			
+			jQuery(".inline").click(function(){
+				jQuery("#inline_content").html('');
+				jQuery.post(
+						ajaxurl, 
+						{
+							'action': 'get_lead_info',
+							'id':   jQuery(this).data("id")
+						}, 
+						function(response){
+							jQuery("#inline_content").html(response);
+						}
+					);
+			});
+		});
+		</script>
+		<div style='display:none'>
+			<div id='inline_content' style='padding:10px; background:#fff;'>
+				
+			</div>
+		</div>
+		<?php
 	}
 
 

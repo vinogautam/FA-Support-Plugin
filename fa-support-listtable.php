@@ -24,7 +24,8 @@ class LeadTable extends WP_List_Table {
 			case 'created':
                 return date('Y/m/d H:i', strtotime($item[$column_name]));
 			case 'manual_link':
-                return $item['status'] == 1 ? '' : '<a href="?action=change_status&id='.$item['id'].'&appointment_id='.$item['appointment_id'].'">Show data to agent</a>';
+				return '<a href="#inline_content" data-id="'.$item['id'].'" class="inline">View Detail</a>';
+                //return $item['status'] == 1 ? '' : '<a href="?action=change_status&id='.$item['id'].'&appointment_id='.$item['appointment_id'].'">Show data to agent</a>';
             default:
                 return $item[$column_name];//print_r($item,true); //Show the whole array for troubleshooting purposes
         }
@@ -65,8 +66,8 @@ class LeadTable extends WP_List_Table {
 			'agent_id'    => 'Agent',
 			'blog_id'    => 'Blog id',
 			'status'    => 'Status',
-			'manual_link' => 'Show data to agent',
-			'created' => 'Gift Date'
+			'created' => 'Registered',
+			'manual_link' => 'Action'
         );
         return $columns;
     }
