@@ -18,11 +18,16 @@ class LeadTable extends WP_List_Table {
     }
 	
 	function column_default($item, $column_name){
+		global $wpdb;
+		
 		switch($column_name){
             case 'agent_id':
                 return get_user_meta($item[$column_name], 'first_name', true).' '.get_user_meta($item[$column_name], 'last_name', true);
 			case 'created':
                 return date('Y/m/d H:i', strtotime($item[$column_name]));
+			case 'appointment_id':
+				$app = $wpdb->get_row("select * from ".$wpdb->prefix."app_appointments where ID =". $item[$column_name]);
+				return $app->start.'-'.$app->end;
 			case 'manual_link':
 				return '<a href="#inline_content" data-id="'.$item['id'].'" class="inline">View Detail</a>';
                 //return $item['status'] == 1 ? '' : '<a href="?action=change_status&id='.$item['id'].'&appointment_id='.$item['appointment_id'].'">Show data to agent</a>';
@@ -58,17 +63,32 @@ class LeadTable extends WP_List_Table {
     
     
     function get_columns(){
-        $columns = array(
-            'cb'        => '<input type="checkbox" />', //Render a checkbox instead of text
-            'first_name'     => 'First name',
-            'last_name'    => 'Last name',
-			'email'    => 'Email',
-			'agent_id'    => 'Agent',
-			'blog_id'    => 'Blog id',
-			'status'    => 'Status',
-			'created' => 'Registered',
-			'manual_link' => 'Action'
-        );
+        if(is_admin())
+		{
+			$columns = array(
+				'cb'        => '<input type="checkbox" />',
+				'first_name'     => 'First name',
+				'last_name'    => 'Last name',
+				'email'    => 'Email',
+				'agent_id'    => 'Agent',
+				'blog_id'    => 'Blog id',
+				'status'    => 'Status',
+				'created' => 'Registered',
+				'manual_link' => 'Action'
+			);
+		}
+		else
+		{
+			$columns = array(
+				'cb'        => '<input type="checkbox" />',
+				'first_name'     => 'First name',
+				'last_name'    => 'Last name',
+				'email'    => 'Email',
+				'phone'    => 'Phone No',
+				'appointment_id'    => 'Appointment Date&Time',
+			);
+		}
+		
         return $columns;
     }
     

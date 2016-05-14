@@ -261,6 +261,10 @@
 				$wpdb->insert($wpdb->prefix . "gift_transaction", $data);
 				$gift_id = $wpdb->insert_id;
 				$ntm_mail->send_gift_mail('get_manualgift_mail', $_GET['id'], $gift_id, 1);
+				
+				$user_info = get_userdata($lead->agent_id);
+				$agentemail = $user_info->user_email;
+				$this->send_lead_confirm_notification($agentemail, $lead->id);
 			}
 			
 		}
