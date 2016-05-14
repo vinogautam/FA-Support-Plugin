@@ -264,7 +264,7 @@
 				
 				$user_info = get_userdata($lead->agent_id);
 				$agentemail = $user_info->user_email;
-				$this->send_lead_confirm_notification($agentemail, $lead->id);
+				$this->send_lead_confirm_notification_to_agent($agentemail, $lead->id);
 			}
 			
 		}
@@ -302,7 +302,32 @@
 		</div>
 		<?php
 	}
-
+	
+	function send_lead_confirm_notification_to_agent($email, $lead_id)
+	{
+		global $wpdb;
+		
+		$lead = $wpdb->get_row("select * from wp_leads where id =" . $lead_id);
+		
+		$message = 'New Lead confirmation notification <br>
+					<h2>Lead Detais <h2> <br>';
+		
+		$label_fields = array('first_name' => 'First Name', 'last_name' => 'Last name', 'email' => 'Email Address', 'city' => 'City', 'phone' => 'Phone Number', 'postal_code' => 'Postal Code', 'province' => 'Province', 'dob' => 'Date of Birth', 'gender' => 'Gender', 'marital_status' => 'Marital Status', 'occupation' => 'Occupation', 'retire_age' => 'At what age would you plan to retire?', 'retire_income' => 'Desired monthly income after retirement', 'retirement_goal' => 'Do you have a plan to meet your retirement goals?', 'own_business' => 'Do you own a business?', 'comments' => 'Comments', 'address' => 'Address');
+		
+		$message .= '<table border="0" cellspacing="0" cellpadding="10">
+			<tr>
+				<th width="50%">Field</th>
+				<th width="50%">Value</th>
+			</tr>';
+		foreach($label_fields as $k=>$v){
+			$message .= '<tr>
+				<td>'.$v.'</td>
+				<td>'.$res->$k.'</td>
+			</tr>';
+		}
+		$message .= '</table>';
+		NTM_mail_template::send_mail($email, 'New Lead confirmation notification.', $message);
+	}
 
 	function payment_options()
 	{
