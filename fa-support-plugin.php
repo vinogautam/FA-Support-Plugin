@@ -39,6 +39,76 @@
 			add_action( 'admin_init',  array( $this, 'add_plugin_options' ));
 		add_action( 'wpmu_new_blog',  array( $this, 'add_user_site_options' ), 10, 6);	
 		add_action( 'wp_ajax_get_lead_info', array( &$this, 'get_lead_info'), 100 );
+
+		add_action('admin_footer', array( $this, 'todays_appointment'));
+		add_action('wpmudev_appointments_update_appointment', array( $this, 'resend_appointment_confirmation'));
+		add_action( 'wp_ajax_cronjob', array( $this, 'remainder_email'));
+		add_action( 'wp_ajax_nopriv_cronjob', array( $this, 'remainder_email') );
+	}
+
+	function remainder_email()
+	{
+		global $wpdb;
+		$appointments = $wpdb->get_results("select * from ".$wpdb->prefix."app_appointments where DATE(start)='".date("Y-m-d")."'");
+
+		foreach ($appointments as $key => $value) {
+			$message = '<h4>Hi '.$value->name.'</h4>';
+			$message .= '<p>This is Remainder email for your appointment scheduled on today. View more details about your meeting <a href="'.site_url().'?id='.base64_encode(base64_encode($value->ID)).'">click here</a></p>';
+			NTM_mail_template::send_mail($value->email, 'Remainder email for your appointment.', $message);
+		}
+		
+	}
+
+	function resend_appointment_confirmation($app_id, $args, $old_appointment)
+	{
+		global $wpdb;
+		$value = $wpdb->get_row("select * from ".$wpdb->prefix."app_appointments where id=".$app_id);
+
+		$message = '<h4>Hi '.$value->name.'</h4>';
+		$message .= '<p>This is Remainder email for your appointment scheduled on today. View more details about your meeting <a href="'.site_url().'?id='.base64_encode(base64_encode($value->ID)).'">click here</a></p>';
+		NTM_mail_template::send_mail($value->email, 'Remainder email for your appointment.', $message);
+		
+	}
+
+	function todays_appointment()
+	{
+		global $wpdb;
+		$appointments = $wpdb->get_results("select * from ".$wpdb->prefix."app_appointments where DATE(start)='".date("Y-m-d")."'");
+
+		?>
+		<style>
+		.todays_app_icon{width:70px; height:70px; border-radius:50%; background:#5C93C1; text-align:center; position:fixed; right:30px; bottom:130px; cursor:pointer;}
+		.todays_app_icon img{width: 30px;height: 30px;left:0;right: 0;top:0;bottom: 0;margin: auto;position: absolute;}
+		.todays_app_icon i{background: #fff none repeat scroll 0 0;border: 1px solid;border-radius: 50%;box-sizing: border-box;display: inline-block;height: 30px;padding: 5px;position: absolute;right: -5px;top: -5px;width: 30px;}
+		.todays_appointment{transition:all 350ms ease 0s; right:-400px; position:fixed; background:#fff; top:0; bottom:0; width:300px; z-index: 100000; border:2px solid #ccc;}
+		.todays_appointment.show_list{right:0; }
+		.todays_appointment h3{text-align:center; position:relative;}
+		.todays_appointment h3 i{position:absolute; top:2px;}
+		.todays_appointment h3 i.fa-cog, .instant_connect_form h3 i.fa-arrow-left{left:20px;}
+		.todays_appointment h3 i.fa-times{right:20px;}
+		</style>
+		<div class="todays_app_icon">
+			<img src="<?= FAS_PLUGIN_URL.'appointment.png'; ?>">
+			<i><?= count($appointments);?></i>
+		</div>
+		<div class="todays_appointment">
+			<h3><i class="fa fa-cog cp" ng-click="settings = true;"></i>Today's appointment<i class="fa fa-times cp"></i></h3>
+
+			<?php foreach($appointments as $k=>$v){?>
+			<div>
+				#<?= k+1?> <?= $v->name;?>, <?= $v->email;?> <br><?= $v->start;?>
+				<hr>
+			</div>
+			<?php }?>
+		</div>
+		<script>
+			jQuery(document).ready(function(){
+				jQuery(".todays_app_icon, .todays_appointment i.fa-times").click(function(){
+					jQuery(".todays_appointment").toggleClass("show_list");
+				});
+			});
+		</script>
+		<?php
 	}
 
 	function add_user_site_options($blog_id, $user_id, $domain, $path, $site_id, $meta) {
@@ -123,6 +193,7 @@
 	function save_lead($appointmentID)
 	{
 		global $wpdb;
+
 		$lead_data = $_POST;
 		$lead_data['created'] = date("Y-m-d H:i:s");
 		$lead_data['agent_id'] = get_blog_option($blog_id, 'agent_id');
@@ -150,7 +221,7 @@
 		unset($lead_data['app_gcal']);
 		unset($lead_data['nonce']);
 		print_r($lead_data);
-		$wpdb->insert("wp_leads", $lead_data);
+		print_r($wpdb->insert("wp_leads", $lead_data));
 		$lead_id = $wpdb->insert_id;
 		//$this->confirmation_mail($lead_id);
 	
@@ -238,7 +309,7 @@
 
 			$invoice_item = Stripe_InvoiceItem::create( array(
 				'customer'    => $customer_id, // the customer to apply the fee to
-				'amount'      => $this->fa_lead_options['admin_fee'], // amount in cents
+				'amount'      => $this->fa_lead_options['admin_fee'] + ($giftAmount * 100), // amount in cents
 				'currency'    => 'usd',
 				'description' => 'One-time setup fee' // our fee description
 			) );

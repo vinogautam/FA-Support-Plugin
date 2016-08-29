@@ -63,7 +63,7 @@ class LeadTable extends WP_List_Table {
     
     
     function get_columns(){
-        if(is_admin())
+        if(is_multisite() && is_super_admin() && is_main_site()) 
 		{
 			$columns = array(
 				'cb'        => '<input type="checkbox" />',
@@ -143,7 +143,7 @@ class LeadTable extends WP_List_Table {
 		}
 		}
 		
-		if(is_admin())
+		if(is_multisite() && is_super_admin() && is_main_site())
 			$data = objectToArray($wpdb->get_results("select * from wp_leads"));
 		else
 			$data = objectToArray($wpdb->get_results("select * from wp_leads where status = 2 and agent_id =". $current_user->ID));
