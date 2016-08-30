@@ -30,7 +30,8 @@ class LeadTable extends WP_List_Table {
 				return $app->start.'-'.$app->end;
 			case 'manual_link':
 				return '<a href="#inline_content" data-id="'.$item['id'].'" class="inline">View Detail</a>';
-                //return $item['status'] == 1 ? '' : '<a href="?action=change_status&id='.$item['id'].'&appointment_id='.$item['appointment_id'].'">Show data to agent</a>';
+            case 'status':
+                return $item['status'] == 1 ? '<a href="?action=change_status&id='.$item['id'].'&appointment_id='.$item['appointment_id'].'">Show data to agent</a>' : ($item['status'] ? 'Invoice Generated' : 'Unverified');
             default:
                 return $item[$column_name];//print_r($item,true); //Show the whole array for troubleshooting purposes
         }
@@ -146,7 +147,7 @@ class LeadTable extends WP_List_Table {
 		if(is_multisite() && is_super_admin() && is_main_site())
 			$data = objectToArray($wpdb->get_results("select * from wp_leads"));
 		else
-			$data = objectToArray($wpdb->get_results("select * from wp_leads where status = 2 and agent_id =". $current_user->ID));
+			$data = objectToArray($wpdb->get_results("select * from wp_leads where status = 2 and blog_id =". get_current_blog_id()));
 		
         $newdat = array();
 		foreach($data as $v){

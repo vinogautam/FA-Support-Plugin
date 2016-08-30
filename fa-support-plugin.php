@@ -44,6 +44,16 @@
 		add_action('wpmudev_appointments_update_appointment', array( $this, 'resend_appointment_confirmation'));
 		add_action( 'wp_ajax_cronjob', array( $this, 'remainder_email'));
 		add_action( 'wp_ajax_nopriv_cronjob', array( $this, 'remainder_email') );
+		add_filter( 'page_template', array( &$this, 'wpa3396_page_template' ));
+		
+	}
+
+	function wpa3396_page_template( $page_template )
+	{
+		if ( is_page( $this->fa_lead_options['waiting_page'] ) ) {
+			$page_template = dirname( __FILE__ ) . '/waitformeeting-template.php';
+		}
+		return $page_template;
 	}
 
 	function remainder_email()
@@ -53,7 +63,7 @@
 
 		foreach ($appointments as $key => $value) {
 			$message = '<h4>Hi '.$value->name.'</h4>';
-			$message .= '<p>This is Remainder email for your appointment scheduled on today. View more details about your meeting <a href="'.site_url().'?id='.base64_encode(base64_encode($value->ID)).'">click here</a></p>';
+			$message .= '<p>This is Remainder email for your appointment scheduled on today. View more details about your meeting <a href="'.get_permalink($this->fa_lead_options['waiting_page']).'?app='.base64_encode(base64_encode($value->ID)).'">click here</a></p>';
 			NTM_mail_template::send_mail($value->email, 'Remainder email for your appointment.', $message);
 		}
 		
@@ -62,10 +72,10 @@
 	function resend_appointment_confirmation($app_id, $args, $old_appointment)
 	{
 		global $wpdb;
-		$value = $wpdb->get_row("select * from ".$wpdb->prefix."app_appointments where id=".$app_id);
+		$value = $wpdb->get_row("select * from ".$wpdb->prefix."app_appointments where ID=".$app_id);
 
 		$message = '<h4>Hi '.$value->name.'</h4>';
-		$message .= '<p>This is Remainder email for your appointment scheduled on today. View more details about your meeting <a href="'.site_url().'?id='.base64_encode(base64_encode($value->ID)).'">click here</a></p>';
+		$message .= '<p>This is Remainder email for your appointment scheduled on today. View more details about your meeting <a href="'.get_permalink($this->fa_lead_options['waiting_page']).'?app='.base64_encode(base64_encode($value->ID)).'">click here</a></p>';
 		NTM_mail_template::send_mail($value->email, 'Remainder email for your appointment.', $message);
 		
 	}
@@ -114,8 +124,8 @@
 	function add_user_site_options($blog_id, $user_id, $domain, $path, $site_id, $meta) {
 			add_blog_option($blog_id, 'agent_id', $user_id );
 			 //echo "Blog ID: " . $blog_id;
-			 echo "BLOG ID: " . get_blog_option($blog_id, 'agent_id');
-			 exit;
+			 //echo "BLOG ID: " . get_blog_option($blog_id, 'agent_id');
+			 //exit;
 	}
 
 	function get_lead_info()
@@ -154,6 +164,7 @@
 	
 	function add_plugin_pages() {
 		add_menu_page( 'Leads', 'Leads', 'manage_options', 'lead_table', array( $this, 'lead_table' ));
+
 		add_submenu_page('lead_table', 'Payment Options', 'Payment Options', 'manage_options', 'payment_options', array($this, 'payment_options'));
 	}
 	
@@ -196,7 +207,7 @@
 
 		$lead_data = $_POST;
 		$lead_data['created'] = date("Y-m-d H:i:s");
-		$lead_data['agent_id'] = get_blog_option($blog_id, 'agent_id');
+		$lead_data['agent_id'] = get_blog_option(get_current_blog_id(), 'agent_id');
 		$lead_data['blog_id'] = get_current_blog_id();
 		$lead_data['form_url'] = $_SERVER['HTTP_REFERER'];
 		$lead_data['visited_page'] = $_COOKIE['fa_surfing_page'];
@@ -220,8 +231,8 @@
 		unset($lead_data['app_note']);
 		unset($lead_data['app_gcal']);
 		unset($lead_data['nonce']);
-		print_r($lead_data);
-		print_r($wpdb->insert("wp_leads", $lead_data));
+		//print_r($lead_data);
+		$wpdb->insert("wp_leads", $lead_data);
 		$lead_id = $wpdb->insert_id;
 		//$this->confirmation_mail($lead_id);
 	
@@ -417,7 +428,7 @@
 				<tbody>
 					
 
-
+				<?php if(is_multisite() && is_super_admin() && is_main_site()){?>
 					<tr valign="top">	
 						<th scope="row" valign="top">
 							Enter Stripe API Key
@@ -447,6 +458,17 @@
 							<label class="description" for="fa_lead_settings[init_gift]">Initial Gift Amount.</label>
 						</td>
 					</tr>
+
+					<?php }else{?>
+					<tr valign="top">	
+						<th scope="row" valign="top">
+							User Waiting Page
+						</th>
+						<td>
+							<?php wp_dropdown_pages( array("name" => 'fa_lead_settings[waiting_page]', 'selected' => $this->fa_lead_options['waiting_page']) ); ?> 
+						</td>
+					</tr>
+					<?php }?>
 				</tbody>
 			</table>
 			
