@@ -212,14 +212,10 @@
 		$lead_data['form_url'] = $_SERVER['HTTP_REFERER'];
 		$lead_data['visited_page'] = $_COOKIE['fa_surfing_page'];
 		$lead_data['appointment_id'] = $appointmentID;
-		if(isset($_COOKIE['endorsement_track_link']) && !isset($_COOKIE['endorsement_tracked']))
+		if(isset($_COOKIE['endorsement_track_link']) && isset($_COOKIE['endorsement_tracked']))
 		{
 			$track_link = explode("#&$#", base64_decode(base64_decode($_COOKIE['endorsement_track_link'])));
-			if(count($track_link) == 3)
-			{
-				$get_results = $wpdb->get_row("select * from ".$wpdb->prefix . "endorsements where id=".$track_link[0]);
-				$lead_data['endorser_id'] = $get_results->endorser_id;
-			}
+			$lead_data['endorser_id'] = $track_link[1];
 		}
 		
 		unset($lead_data['action']);

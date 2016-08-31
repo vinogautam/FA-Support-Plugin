@@ -114,7 +114,7 @@ if(isset($_GET['app'])){
 		{?>
 			<script>
 				jQuery(document).ready(function(){
-					jQuery.post('<?php echo site_url();?>/wp-admin/admin-ajax.php',{action: "join_chat", meeting: {name: "<?= $appointments->name; ?>", email: "<?= $appointments->email; ?>", status: 1}}, function(res){
+					jQuery.post('<?php echo site_url();?>/wp-admin/admin-ajax.php',{action: "join_chat", meeting: {name: "<?= $appointments->name; ?>", email: "<?= $appointments->email; ?>", status: 1, lead: <?= $appointments->id; ?>}}, function(res){
 						console.log(res);
 						setTimeout(function(){window.location.assign("<?php echo site_url();?>");}, 3000);
 					});
