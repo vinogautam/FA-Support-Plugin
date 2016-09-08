@@ -212,10 +212,16 @@
 		$lead_data['form_url'] = $_SERVER['HTTP_REFERER'];
 		$lead_data['visited_page'] = $_COOKIE['fa_surfing_page'];
 		$lead_data['appointment_id'] = $appointmentID;
+		
 		if(isset($_COOKIE['endorsement_track_link']) && isset($_COOKIE['endorsement_tracked']))
 		{
 			$track_link = explode("#&$#", base64_decode(base64_decode($_COOKIE['endorsement_track_link'])));
 			$lead_data['endorser_id'] = $track_link[1];
+		}
+
+		if(isset($_COOKIE['endorsement_gift_sent']))
+		{
+			$lead_data['gift'] = 1;
 		}
 		
 		unset($lead_data['action']);
@@ -291,6 +297,7 @@
 			   form_url tinytext,
 			   endorser_id int(11),
 			   appointment_id int(11),
+			   gift int(11),
 			  PRIMARY KEY  (id) ) ENGINE=InnoDB";
 
 			require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
@@ -306,43 +313,48 @@
 		{
 			$lead = $wpdb->get_row("select * from wp_leads where id=".$_GET['id']);
 			
-			Stripe::setApiKey($this->fa_lead_options['api_key']);
-			Stripe::setAPIVersion("2015-07-13");
-			
-			$customer_id = get_user_meta($lead->agent_id, "pmpro_stripe_customerid");
-			
-			$amount = $this->fa_lead_options['admin_fee'] * 100;
-			$giftAmount =  $this->fa_lead_options['init_gift'];
-
-			$invoice_item = Stripe_InvoiceItem::create( array(
-				'customer'    => $customer_id, // the customer to apply the fee to
-				'amount'      => $this->fa_lead_options['admin_fee'] + ($giftAmount * 100), // amount in cents
-				'currency'    => 'usd',
-				'description' => 'One-time setup fee' // our fee description
-			) );
-		 
-			$invoice = Stripe_Invoice::create( array(
-				'customer'    => $customer_id, // the customer to apply the fee to
-			) );
-		 
-			$result = $invoice->pay();
-			if(isset($result->object) && $result->object == 'invoice')
+			if(!$lead->gift)
 			{
-				$wpdb->update("wp_leads", array('status' => 2), array('id' => $_GET['id']));
-				$appoinments->appointments_update_appointment_status( $_GET['appointment_id'], 'confirmed' );
+				Stripe::setApiKey($this->fa_lead_options['api_key']);
+				Stripe::setAPIVersion("2015-07-13");
 				
-				$data = array(
-								'lead_id' =>$_GET['id'],
-								'amout' => $giftAmount,
-								'created'	=> date("Y-m-d H:i:s")
-								);
-				$wpdb->insert($wpdb->prefix . "gift_transaction", $data);
-				$gift_id = $wpdb->insert_id;
-				$ntm_mail->send_gift_mail('get_manualgift_mail', $_GET['id'], $gift_id, 1);
+				$customer_id = get_user_meta($lead->agent_id, "pmpro_stripe_customerid");
 				
-				$user_info = get_userdata($lead->agent_id);
-				$agentemail = $user_info->user_email;
-				$this->send_lead_confirm_notification_to_agent($agentemail, $lead->id);
+				$amount = $this->fa_lead_options['admin_fee'] * 100;
+				$giftAmount =  $this->fa_lead_options['init_gift'];
+
+				$invoice_item = Stripe_InvoiceItem::create( array(
+					'customer'    => $customer_id, // the customer to apply the fee to
+					'amount'      => $this->fa_lead_options['admin_fee'] + ($giftAmount * 100), // amount in cents
+					'currency'    => 'usd',
+					'description' => 'One-time setup fee' // our fee description
+				) );
+			 
+				$invoice = Stripe_Invoice::create( array(
+					'customer'    => $customer_id, // the customer to apply the fee to
+				) );
+			 
+				$result = $invoice->pay();
+				if(isset($result->object) && $result->object == 'invoice')
+				{
+					$wpdb->update("wp_leads", array('status' => 2, 'gift' => 1), array('id' => $_GET['id']));
+					$appoinments->appointments_update_appointment_status( $_GET['appointment_id'], 'confirmed' );
+					
+					$data = array(
+									'lead_id' =>$_GET['id'],
+									'amout' => $giftAmount,
+									'created'	=> date("Y-m-d H:i:s")
+									);
+					$wpdb->insert($wpdb->prefix . "gift_transaction", $data);
+					$gift_id = $wpdb->insert_id;
+					$ntm_mail->send_gift_mail('get_manualgift_mail', $_GET['id'], $gift_id, 1);
+					
+					$user_info = get_userdata($lead->agent_id);
+					$agentemail = $user_info->user_email;
+					$this->send_lead_confirm_notification_to_agent($agentemail, $lead->id);
+
+
+				}
 			}
 			
 		}
