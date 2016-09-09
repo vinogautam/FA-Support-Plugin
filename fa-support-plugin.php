@@ -201,12 +201,32 @@
 		}
 	}
 	
+	function get_client_ip() {
+	    $ipaddress = '';
+	    if (getenv('HTTP_CLIENT_IP'))
+	        $ipaddress = getenv('HTTP_CLIENT_IP');
+	    else if(getenv('HTTP_X_FORWARDED_FOR'))
+	        $ipaddress = getenv('HTTP_X_FORWARDED_FOR');
+	    else if(getenv('HTTP_X_FORWARDED'))
+	        $ipaddress = getenv('HTTP_X_FORWARDED');
+	    else if(getenv('HTTP_FORWARDED_FOR'))
+	        $ipaddress = getenv('HTTP_FORWARDED_FOR');
+	    else if(getenv('HTTP_FORWARDED'))
+	       $ipaddress = getenv('HTTP_FORWARDED');
+	    else if(getenv('REMOTE_ADDR'))
+	        $ipaddress = getenv('REMOTE_ADDR');
+	    else
+	        $ipaddress = 'UNKNOWN';
+	    return $ipaddress;
+	}
+
 	function save_lead($appointmentID)
 	{
 		global $wpdb;
 
 		$lead_data = $_POST;
 		$lead_data['created'] = date("Y-m-d H:i:s");
+		$lead_data['ip_address'] = $this->get_client_ip();
 		$lead_data['agent_id'] = get_blog_option(get_current_blog_id(), 'agent_id');
 		$lead_data['blog_id'] = get_current_blog_id();
 		$lead_data['form_url'] = $_SERVER['HTTP_REFERER'];
@@ -298,6 +318,7 @@
 			   endorser_id int(11),
 			   appointment_id int(11),
 			   gift int(11),
+			   ip_address tinytext NOT NULL,
 			  PRIMARY KEY  (id) ) ENGINE=InnoDB";
 
 			require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
