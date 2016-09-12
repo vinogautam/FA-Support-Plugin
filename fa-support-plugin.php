@@ -45,6 +45,23 @@
 		add_action( 'wp_ajax_cronjob', array( $this, 'remainder_email'));
 		add_action( 'wp_ajax_nopriv_cronjob', array( $this, 'remainder_email') );
 		add_filter( 'page_template', array( &$this, 'wpa3396_page_template' ));
+
+
+		if(is_main_site())
+		{
+			if(isset($_COOKIE['fi_agent_site']))
+			{
+				if(isset($_POST['data']))
+				{
+					$this->save_lead(0, $_COOKIE['fi_agent_site']);
+				}
+
+			}
+		}
+		else
+		{
+			setcookie("fi_agent_site", get_current_blog_id(), time() + (86400 * 365), "/");
+		}
 		
 	}
 
@@ -220,17 +237,20 @@
 	    return $ipaddress;
 	}
 
-	function save_lead($appointmentID)
+	function save_lead($appointmentID, $bid = '')
 	{
 		global $wpdb;
+
+		$blog_id = $bid ? $bid : get_current_blog_id();
 
 		$lead_data = $_POST;
 		$lead_data['created'] = date("Y-m-d H:i:s");
 		$lead_data['ip_address'] = $this->get_client_ip();
-		$lead_data['agent_id'] = get_blog_option(get_current_blog_id(), 'agent_id');
-		$lead_data['blog_id'] = get_current_blog_id();
+		$lead_data['agent_id'] = get_blog_option($blog_id, 'agent_id');
+		$lead_data['blog_id'] = $blog_id;
 		$lead_data['form_url'] = $_SERVER['HTTP_REFERER'];
 		$lead_data['visited_page'] = $_COOKIE['fa_surfing_page'];
+		if($appointmentID)
 		$lead_data['appointment_id'] = $appointmentID;
 		
 		if(isset($_COOKIE['endorsement_track_link']) && isset($_COOKIE['endorsement_tracked']))
@@ -254,12 +274,30 @@
 		unset($lead_data['app_gcal']);
 		unset($lead_data['nonce']);
 		//print_r($lead_data);
-		$wpdb->insert("wp_leads", $lead_data);
-		$lead_id = $wpdb->insert_id;
-		//$this->confirmation_mail($lead_id);
-	
+		if(isset($lead_data['lead_id']))
+		{
+			$wpdb->update("wp_leads", $lead_data, array('id' => $lead_data['lead_id']));
+			$this->confirmation_mail($lead_data['lead_id']);
+		}
+		else
+		{
+			$wpdb->insert("wp_leads", $lead_data);
+			$lead_id = $wpdb->insert_id;
+
+			if($bid)
+				$this->confirmation_mail_from_main_site($lead_id);
+			else
+				$this->confirmation_mail($lead_id);
+		}
 	}
 	
+	function confirmation_mail_from_main_site($lead_id)
+	{
+		$message = 'Thanks for signing up FinancialInsiders. <a href="'.get_permalink($this->fa_lead_options['appointment_page']).'?id='.base64_encode(base64_encode($lead_id)).'">Click here to confirm your booking</a>';
+		
+		NTM_mail_template::send_mail($_POST['email'], 'Book your Appointment.', $message);
+	}
+
 	function confirmation_mail($lead_id)
 	{
 		$message = 'Thanks for signing up FinancialInsiders. <a href="'.site_url().'?action=update_lead_status&id='.base64_encode(base64_encode($lead_id)).'">Click here to confirm your registration</a>';
@@ -495,6 +533,14 @@
 						</th>
 						<td>
 							<?php wp_dropdown_pages( array("name" => 'fa_lead_settings[waiting_page]', 'selected' => $this->fa_lead_options['waiting_page']) ); ?> 
+						</td>
+					</tr>
+					<tr valign="top">
+						<th scope="row" valign="top">
+							Appointment Page
+						</th>
+						<td>
+							<?php wp_dropdown_pages( array("name" => 'fa_lead_settings[appointment_page]', 'selected' => $this->fa_lead_options['appointment_page']) ); ?> 
 						</td>
 					</tr>
 					<?php }?>
