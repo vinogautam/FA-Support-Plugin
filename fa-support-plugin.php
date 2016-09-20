@@ -33,7 +33,7 @@
 		}
 		
 		add_action( 'app_new_appointment', array( &$this, 'save_lead'), 100 );
-		add_action( 'wp_footer', array( &$this, 'save_surfing_page'), 100 );
+		//add_action( 'wp_footer', array( &$this, 'save_surfing_page'), 100 );
 		add_action( 'admin_menu', array( $this, 'add_plugin_pages' ) );
 		if(is_admin())
 			add_action( 'admin_init',  array( $this, 'add_plugin_options' ));
@@ -49,13 +49,12 @@
 
 		if(is_main_site())
 		{
-			if(isset($_COOKIE['fi_agent_site']))
+			if(isset($_POST['data']))
 			{
-				if(isset($_POST['data']))
-				{
+				if(isset($_COOKIE['fi_agent_site']))
 					$this->save_lead(0, $_COOKIE['fi_agent_site']);
-				}
-
+				else
+					$this->save_lead(0);
 			}
 		}
 		else
@@ -67,7 +66,7 @@
 
 	function wpa3396_page_template( $page_template )
 	{
-		if ( is_page( $this->fa_lead_options['waiting_page'] ) ) {
+		if (isset($this->fa_lead_options['waiting_page']) && is_page( $this->fa_lead_options['waiting_page'] ) ) {
 			$page_template = dirname( __FILE__ ) . '/waitformeeting-template.php';
 		}
 		return $page_template;
@@ -151,7 +150,9 @@
 		
 		$res = $wpdb->get_row("select * from wp_leads where id=".$_POST['id']);
 		
-		$label_fields = array('first_name' => 'First Name', 'last_name' => 'Last name', 'email' => 'Email Address', 'city' => 'City', 'phone' => 'Phone Number', 'postal_code' => 'Postal Code', 'province' => 'Province', 'dob' => 'Date of Birth', 'gender' => 'Gender', 'marital_status' => 'Marital Status', 'occupation' => 'Occupation', 'retire_age' => 'At what age would you plan to retire?', 'retire_income' => 'Desired monthly income after retirement', 'retirement_goal' => 'Do you have a plan to meet your retirement goals?', 'own_business' => 'Do you own a business?', 'comments' => 'Comments', 'address' => 'Address');
+		$form_data = unserialize($res->form_data);
+
+		/*$label_fields = array('first_name' => 'First Name', 'last_name' => 'Last name', 'email' => 'Email Address', 'city' => 'City', 'phone' => 'Phone Number', 'postal_code' => 'Postal Code', 'province' => 'Province', 'dob' => 'Date of Birth', 'gender' => 'Gender', 'marital_status' => 'Marital Status', 'occupation' => 'Occupation', 'retire_age' => 'At what age would you plan to retire?', 'retire_income' => 'Desired monthly income after retirement', 'retirement_goal' => 'Do you have a plan to meet your retirement goals?', 'own_business' => 'Do you own a business?', 'comments' => 'Comments', 'address' => 'Address');*/
 		
 		?>
 		<table border="0" cellspacing="0" cellpadding="10">
@@ -159,12 +160,12 @@
 				<th width="50%">Field</th>
 				<th width="50%">Value</th>
 			</tr>
-			<?php foreach($label_fields as $k=>$v){?>
+			<?php foreach($form_data as $k=>$v){ if($v){?>
 			<tr>
+				<td><?= ucfirst(str_replace($k, "_", " "));?></td>
 				<td><?= $v;?></td>
-				<td><?= $res->$k;?></td>
 			</tr>
-			<?php }?>
+			<?php }}?>
 		</table>
 		<?php
 		echo $res->status == 1 ? '<a class="button button-primary" href="?action=change_status&id='.$res->id.'&appointment_id='.$res->appointment_id.'">Confirm Lead</a>' : '';
@@ -250,6 +251,7 @@
 		$lead_data['blog_id'] = $blog_id;
 		$lead_data['form_url'] = $_SERVER['HTTP_REFERER'];
 		$lead_data['visited_page'] = $_COOKIE['fa_surfing_page'];
+		$lead_data['form_data'] = serialize($_POST);
 		if($appointmentID)
 		$lead_data['appointment_id'] = $appointmentID;
 		
@@ -357,6 +359,7 @@
 			   appointment_id int(11),
 			   gift int(11),
 			   ip_address tinytext NOT NULL,
+			   form_data text,
 			  PRIMARY KEY  (id) ) ENGINE=InnoDB";
 
 			require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
