@@ -10,7 +10,7 @@
  if(!class_exists('Stripe'))
  {
 	 
- 	 require_once( ABSPATH . '/wp-content/plugins/paid-memberships-pro/includes/lib/Stripe/Stripe.php');
+ 	 require_once( ABSPATH . '/wp-content/plugins/paid-memberships-pro/includes/lib/Stripe/lib/Stripe.php');
 	 
  }
  
@@ -60,8 +60,22 @@
 		else
 		{
 			setcookie("fi_agent_site", get_current_blog_id(), time() + (86400 * 365), "/");
+
+			$this->save_surfing_page();
 		}
 		
+	}
+
+	function curPageURL() {
+		$pageURL = "http";
+		if ($_SERVER["HTTPS"] == "on") {$pageURL .= "s";}
+		$pageURL .= "://";
+		if ($_SERVER["SERVER_PORT"] != "80") {
+		$pageURL .= $_SERVER["SERVER_NAME"].":".$_SERVER["SERVER_PORT"].$_SERVER["REQUEST_URI"];
+		} else {
+		$pageURL .= $_SERVER["SERVER_NAME"].$_SERVER["REQUEST_URI"];
+		}
+		return $pageURL;
 	}
 
 	function wpa3396_page_template( $page_template )
@@ -190,10 +204,11 @@
 	{
 		$surfing_page = isset($_COOKIE['fa_surfing_page']) ? explode(",", $_COOKIE['fa_surfing_page']) : array();
 		//print_r(!in_array(get_the_title(), $surfing_page));
-		$data = 'Blog:'.get_current_blog_id().' Page:'.get_the_title();
+		//$data = 'Blog:'.get_current_blog_id().' Page:'.get_the_title();
+		$data = $this->curPageURL();
 		if(!in_array($data, $surfing_page))
 			$surfing_page[] = $data;
-		//print_r($surfing_page);
+		//print_r($surfing_page);exit;
 		setcookie("fa_surfing_page", implode(",", $surfing_page), time() + (86400 * 365), "/");
 		
 		if(!isset($_COOKIE['visited_blog_id']) && get_current_blog_id())
