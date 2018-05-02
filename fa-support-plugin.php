@@ -153,6 +153,8 @@
 
 	function add_user_site_options($blog_id, $user_id, $domain, $path, $site_id, $meta) {
 			add_blog_option($blog_id, 'agent_id', $user_id );
+			add_user_meta($user_id, 'blog_id', $blog_id );
+			add_user_meta($user_id, 'domain', $blog_id );
 			 //echo "Blog ID: " . $blog_id;
 			 //echo "BLOG ID: " . get_blog_option($blog_id, 'agent_id');
 			 //exit;
