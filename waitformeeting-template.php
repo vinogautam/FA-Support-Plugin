@@ -5,14 +5,16 @@ echo get_header();
 <?php 
 if(isset($_GET['app'])){
 
-	$app = base64_decode(base64_decode($_GET['app']));
+	$decode=explode('#', base64_decode(base64_decode($_GET['app'])));
+  	$meeting_id = $decode[0];
 	global $wpdb;
 
-	$appointments = $wpdb->get_row("select * from ".$wpdb->prefix."app_appointments where ID=".$app);
-	if(count($appointments) && $appointments->status == 'confirmed')
-	{
-		$apptime = strtotime($appointments->start);
-		if($apptime < strtotime("now")){
+	$meeting = $wpdb->get_row("select * from ".$wpdb->prefix."meeting where id=".$meeting_id);
+	if(strtotime('now') > strtotime($meeting->meeting_date)){
+		wp_redirect(get_permalink('meeting').'?app='.$_GET['app']);exit;
+	}
+	else{
+		$apptime = strtotime($meeting->meeting_date);
 		?>
 		<div id="clockdiv">
 			<div>
@@ -65,10 +67,7 @@ if(isset($_GET['app'])){
 
 		    if (t.total <= 0) {
 		      	clearInterval(timeinterval);
-		      	jQuery.post('<?php echo site_url();?>/wp-admin/admin-ajax.php',{action: "join_chat", meeting: {name: "<?= $appointments->name; ?>", email: "<?= $appointments->email; ?>", status: 1}}, function(res){
-					console.log(res);
-					setTimeout(function(){window.location.assign("<?php echo site_url();?>");}, 3000);
-				});
+		      	window.location.assign("<?php echo get_permalink('meeting').'?app='.$_GET['app'];?>");
 		    }
 		  }
 
@@ -109,22 +108,8 @@ if(isset($_GET['app'])){
 		}
 		</style>
 		<?php
-		}
-		else
-		{?>
-			<script>
-				jQuery(document).ready(function(){
-					jQuery.post('<?php echo site_url();?>/wp-admin/admin-ajax.php',{action: "join_chat", meeting: {name: "<?= $appointments->name; ?>", email: "<?= $appointments->email; ?>", status: 1, lead: <?= $appointments->id; ?>}}, function(res){
-						console.log(res);
-						setTimeout(function(){window.location.assign("<?php echo site_url();?>");}, 3000);
-					});
-				});
-			</script>
-		<?php
-		}
+		
 	}
-	else
-		echo '<p>No meetings found for you!!!</p>';
 }
 else
 echo '<p>No meetings found for you!!!</p>';
