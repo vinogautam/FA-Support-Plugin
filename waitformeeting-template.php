@@ -1,21 +1,32 @@
-<?php
-echo get_header();
-?>
+<title>Waiting Hall</title>
+<header>
+	Waiting Hall
+</header>
 <div class="container">
 <?php 
-if(isset($_GET['app'])){
+if(isset($_GET['waitinghall'])){
 
-	$decode=explode('#', base64_decode(base64_decode($_GET['app'])));
+	$decode=explode('#', base64_decode(base64_decode($_GET['waitinghall'])));
   	$meeting_id = $decode[0];
+  	$pid = $decode[1];
 	global $wpdb;
+
+	$counted = $_GET['waitinghall'];
+	//$counted = base64_encode(base64_encode($decode[0].'#'.$decode[1].'#1'));
 
 	$meeting = $wpdb->get_row("select * from ".$wpdb->prefix."meeting where id=".$meeting_id);
 	if(strtotime('now') > strtotime($meeting->meeting_date)){
-		wp_redirect(get_permalink('meeting').'?app='.$_GET['app']);exit;
+		wp_redirect(get_permalink('meeting').'?id='.$_GET['waitinghall']);exit;
 	}
 	else{
 		$apptime = strtotime($meeting->meeting_date);
+		if($pid != 0){
+		    $participants = $wpdb->get_row("select * from ".$wpdb->prefix . "meeting_participants where id=".$pid);
+		  }
 		?>
+
+		<p>Dear <?= $pid == 0 ? 'Admin' : $participants->name ?> your meeting scheduled on <?= $meeting->meeting_date;?>, Your meeting begin in</p>
+
 		<div id="clockdiv">
 			<div>
 				<span class="days"></span>
@@ -67,7 +78,7 @@ if(isset($_GET['app'])){
 
 		    if (t.total <= 0) {
 		      	clearInterval(timeinterval);
-		      	window.location.assign("<?php echo get_permalink('meeting').'?app='.$_GET['app'];?>");
+		      	window.location.assign("<?php echo get_permalink('meeting').'?id='.$counted;?>");
 		    }
 		  }
 
@@ -75,11 +86,21 @@ if(isset($_GET['app'])){
 		  var timeinterval = setInterval(updateClock, 1000);
 		}
 
-		var deadline = new Date(<?= date("Y", $apptime);?>, <?= date("m", $apptime)-1;?>, <?= date("d", $apptime);?>, <?= date("H", $apptime);?>, <?= date("i", $apptime);?>);
+		var deadline = new Date(<?= date("Y", $apptime);?>, <?= date("m", $apptime)-1;?>, <?= date("d", $apptime);?>, <?= date("H", $apptime);?>, <?= date("i", $apptime);?>, <?= date("s", $apptime);?>);
 		initializeClock('clockdiv', deadline);
 		</script>
 		<style>
+		body{margin: 0}
+		p{text-align: center;}
+		header {
+		    background: #3c8dbc;
+		    padding: 10px 0;
+		    text-align: center;
+		    color: #fff;
+		    font-size: 25px;
+		}
 		#clockdiv{
+			width: 100%;
 			font-family: sans-serif;
 			color: #fff;
 			display: inline-block;
@@ -91,14 +112,14 @@ if(isset($_GET['app'])){
 		#clockdiv > div{
 			padding: 10px;
 			border-radius: 3px;
-			background: #00BF96;
+			background: #3c8dbc;
 			display: inline-block;
 		}
 
 		#clockdiv div > span{
 			padding: 15px;
 			border-radius: 3px;
-			background: #00816A;
+			background: #357CA5;
 			display: inline-block;
 		}
 
@@ -115,6 +136,3 @@ else
 echo '<p>No meetings found for you!!!</p>';
 ?>
 </div>
-<?php
-echo get_footer();
-?>

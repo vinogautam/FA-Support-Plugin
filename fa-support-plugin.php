@@ -7,10 +7,11 @@
  
  include 'fa-support-listtable.php';
  define('FAS_PLUGIN_URL', plugin_dir_url( __FILE__ ));
- if(!class_exists('Stripe'))
+if(!class_exists("Stripe\Stripe"))
  {
 	 
- 	 require_once( ABSPATH . '/wp-content/plugins/paid-memberships-pro/includes/lib/Stripe/lib/Stripe.php');
+ 	 require_once( ABSPATH . '/wp-content/plugins/paid-memberships-pro/includes/lib/Stripe/init.php');
+ 	 //Had to change the stripe location.
 	 
  }
  
@@ -80,7 +81,7 @@
 
 	function wpa3396_page_template( $page_template )
 	{
-		if (isset($this->fa_lead_options['waiting_page']) && is_page( $this->fa_lead_options['waiting_page'] ) ) {
+		if (is_page( 'meeting' ) && isset($_GET['waitinghall']) ) {
 			$page_template = dirname( __FILE__ ) . '/waitformeeting-template.php';
 		}
 		return $page_template;
@@ -154,7 +155,7 @@
 	function add_user_site_options($blog_id, $user_id, $domain, $path, $site_id, $meta) {
 			add_blog_option($blog_id, 'agent_id', $user_id );
 			add_user_meta($user_id, 'blog_id', $blog_id );
-			add_user_meta($user_id, 'domain', $blog_id );
+			add_user_meta($user_id, 'domain', $domain );
 			 //echo "Blog ID: " . $blog_id;
 			 //echo "BLOG ID: " . get_blog_option($blog_id, 'agent_id');
 			 //exit;
@@ -376,6 +377,7 @@
 			   appointment_id int(11),
 			   gift int(11),
 			   ip_address tinytext NOT NULL,
+			   fb_ref tinytext,
 			   form_data text,
 			  PRIMARY KEY  (id) ) ENGINE=InnoDB";
 
@@ -573,9 +575,6 @@
 		
 		</form>
 	<?php
-
-
-
 	}
  }
  
